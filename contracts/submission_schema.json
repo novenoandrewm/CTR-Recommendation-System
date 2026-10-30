@@ -1,45 +1,37 @@
 {
-    "contract_version" : "1.0",
-
-    "description" : "Huawei TechArena Phase 1 submission contract",
-
-    "format" : {
-        "file_type" : "csv", 
-        "encoding" : "utf-8", 
-        "header_required" : true,
-
-        "columns" : [
-            "rowid", 
+    "contract_version": "1.0",
+    "description": "Huawei TechArena Phase 1 submission contract",
+    "format": {
+        "file_type": "csv",
+        "encoding": "utf-8",
+        "header_required": true,
+        "columns": [
+            "rowid",
             "predicted_probability"
         ],
-
-        "allow_additional_columns" : false
+        "allow_additional_columns": false
     },
-
-    "rowid" : {
-        "type" : "string",
-        "unique" : true,
-        "must_match_evaluation" : true,
-        "preserve_original_value" : true 
+    "rowid": {
+        "type": "string",
+        "unique": true,
+        "must_match_evaluation": true,
+        "preserve_original_value": true
     },
-
-    "predicted_probability" : {
-        "type" : "float", 
-        "minimum" : 0.0,
-        "maximum" : 1.0,
-        "allow_nan" : false,
-        "allow_infinity" : false,
-        "allow_missing" : false
+    "predicted_probability": {
+        "type": "float",
+        "minimum": 0.0,
+        "maximum": 1.0,
+        "allow_nan": false,
+        "allow_infinity": false,
+        "allow_missing": false
     },
-
-    "event_constraints" : {
-        "require_probabilities_sum_row_coverage" : true
+    "event_constraints": {
+        "require_probabilities_sum_row_coverage": true
     },
-
-    "validation" : {
-        "require_exact_evaluation_row_coverage" : true,
-        "reject_duplicate_rowids" : true,
-        "reject_unknown_rowids" : true,
-        "reject_missing_predictions" : true
+    "validation": {
+        "require_exact_evaluation_row_coverage": true,
+        "reject_duplicate_rowids": true,
+        "reject_unknown_rowids": true,
+        "reject_missing_predictions": true
     }
 }
