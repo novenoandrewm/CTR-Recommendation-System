@@ -10,6 +10,7 @@ import tempfile
 from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
+from time import perf_counter
 
 from ctr_recommendation.data.validate import (
     CandidateRecord,
@@ -41,7 +42,11 @@ def _context_hash(candidate: CandidateRecord) -> str:
         candidate.history_timestamps,
     ]
 
-    payload = json.dumps(context, separators=(",", ":"), ensure_ascii=False)
+    payload = json.dumps(
+        context,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
 
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -81,6 +86,7 @@ def _record_candidate(
             "INSERT INTO seen_rowids VALUES (?)",
             (candidate.rowid,),
         )
+
     except sqlite3.IntegrityError as exc:
         raise ValueError(f"Duplicate rowid across dataset: {candidate.rowid}") from exc
 
@@ -127,6 +133,19 @@ def audit_csv(
 
     candidate_count = 0
 
+    # Start performance measurement.
+    started_at = perf_counter()
+
+    print(
+        f"[AUDIT] Starting validation: {csv_path}",
+        flush=True,
+    )
+
+    print(
+        f"[AUDIT] Partition: {partition}",
+        flush=True,
+    )
+
     with tempfile.TemporaryDirectory(prefix="ctr_audit_") as temporary:
         database_path = Path(temporary) / "audit.sqlite"
 
@@ -138,7 +157,10 @@ def audit_csv(
                 encoding="utf-8",
                 newline="",
             ) as handle:
-                reader = csv.DictReader(handle, strict=True)
+                reader = csv.DictReader(
+                    handle,
+                    strict=True,
+                )
 
                 if reader.fieldnames is None:
                     raise ValueError("CSV has no header")
@@ -149,27 +171,67 @@ def audit_csv(
                     partition=partition,
                 )
 
+                print(
+                    "[AUDIT] Header validation: PASS",
+                    flush=True,
+                )
+
                 for row in reader:
+                    # Reject malformed CSV records.
                     if None in row or any(value is None for value in row.values()):
                         raise ValueError(f"Malformed CSV record near line {reader.line_num}")
 
+                    # Validate candidate-level integrity.
                     candidate = validate_candidate(
                         row,
                         contract,
                         partition=partition,
                     )
 
-                    _record_candidate(connection, candidate)
+                    # Record candidate and enforce global integrity.
+                    _record_candidate(
+                        connection,
+                        candidate,
+                    )
 
                     candidate_count += 1
 
-                    if candidate_count % 10000 == 0:
+                    # Periodically commit SQLite transactions.
+                    if candidate_count % 10_000 == 0:
                         connection.commit()
 
+                        # Print progress after the first 10,000
+                        # rows and every subsequent 100,000 rows.
+                        if candidate_count == 10_000 or candidate_count % 100_000 == 0:
+                            elapsed = perf_counter() - started_at
+
+                            rate = candidate_count / max(
+                                elapsed,
+                                0.001,
+                            )
+
+                            print(
+                                f"[AUDIT] Rows: {candidate_count:,} | "
+                                f"Elapsed: {elapsed:.1f}s | "
+                                f"Speed: {rate:,.0f} rows/s",
+                                flush=True,
+                            )
+
+            # Commit any remaining records.
             connection.commit()
 
             if candidate_count == 0:
                 raise ValueError("CSV contains no candidate rows")
+
+            print(
+                "[AUDIT] Candidate processing complete.",
+                flush=True,
+            )
+
+            print(
+                "[AUDIT] Checking event integrity...",
+                flush=True,
+            )
 
             expected = contract["events"]["expected_candidate_count"]
 
@@ -177,7 +239,10 @@ def audit_csv(
 
             invalid = connection.execute(
                 """
-                SELECT event_id, candidate_count, click_count
+                SELECT
+                    event_id,
+                    candidate_count,
+                    click_count
                 FROM events
 
                 WHERE candidate_count != ?
@@ -185,7 +250,10 @@ def audit_csv(
 
                 LIMIT 1
                 """,
-                (expected, maximum_clicks),
+                (
+                    expected,
+                    maximum_clicks,
+                ),
             ).fetchone()
 
             if invalid is not None:
@@ -196,7 +264,13 @@ def audit_csv(
                     f"clicks={invalid[2]}"
                 )
 
+            # Evaluation must contain one event per user.
             if partition == "evaluation":
+                print(
+                    "[AUDIT] Checking evaluation user uniqueness...",
+                    flush=True,
+                )
+
                 try:
                     connection.execute(
                         """
@@ -204,6 +278,7 @@ def audit_csv(
                         ON events(user_id)
                         """
                     )
+
                 except sqlite3.IntegrityError as exc:
                     raise ValueError("Evaluation contains multiple events for one user") from exc
 
@@ -221,6 +296,29 @@ def audit_csv(
 
             event_count, total_clicks = result
 
+    # Report performance only after the full audit succeeds.
+    total_elapsed = perf_counter() - started_at
+
+    average_rate = candidate_count / max(
+        total_elapsed,
+        0.001,
+    )
+
+    print(
+        "[AUDIT] All integrity checks passed.",
+        flush=True,
+    )
+
+    print(
+        f"[AUDIT] Total elapsed: {total_elapsed:.1f}s",
+        flush=True,
+    )
+
+    print(
+        f"[AUDIT] Average speed: {average_rate:,.0f} rows/s",
+        flush=True,
+    )
+
     return AuditResult(
         partition=partition,
         candidate_rows=candidate_count,
@@ -234,7 +332,11 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(description="Audit a Huawei TechArena candidate CSV")
 
-    parser.add_argument("--csv", required=True, type=Path)
+    parser.add_argument(
+        "--csv",
+        required=True,
+        type=Path,
+    )
 
     parser.add_argument(
         "--contract",
@@ -256,11 +358,17 @@ def main() -> None:
         partition=args.partition,
     )
 
+    print()
+    print("=" * 45)
     print("CSV AUDIT: PASS")
+    print("=" * 45)
+
     print(f"Partition: {result.partition}")
-    print(f"Candidate rows: {result.candidate_rows}")
-    print(f"Events: {result.events}")
+    print(f"Candidate rows: {result.candidate_rows:,}")
+    print(f"Events: {result.events:,}")
     print(f"Clicks: {result.clicks}")
+
+    print("=" * 45)
 
 
 if __name__ == "__main__":
