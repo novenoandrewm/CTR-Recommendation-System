@@ -1,0 +1,73 @@
+# Huawei TechArena 2026
+# Temporal Validation Configuration
+# Version: 1.0
+
+version: 1
+
+task:
+  type: candidate_click_prediction
+  primary_metric: global_roc_auc
+  timezone: UTC
+
+validation:
+  split_type: temporal
+  selection: first_event_per_user
+
+  preserve_event_groups: true
+  prevent_future_label_leakage: true
+
+  history:
+    allow_observed_pre_event_clicks: true
+    require_history_before_event: true
+
+  event_ties:
+    policy: deterministic_event_id
+    report_ambiguities: true
+
+windows:
+
+  development:
+    fit_before: "2025-01-23T00:00:00Z"
+    validate_from: "2025-01-23T00:00:00Z"
+    validate_before: "2025-01-24T00:00:00Z"
+    purpose: model_development
+
+  confirmation:
+    fit_before: "2025-01-24T00:00:00Z"
+    validate_from: "2025-01-24T00:00:00Z"
+    validate_before: "2025-01-25T00:00:00Z"
+    purpose: restricted_confirmation
+
+  weekend_robustness:
+    fit_before: "2025-01-25T00:00:00Z"
+    validate_from: "2025-01-25T00:00:00Z"
+    validate_before: "2025-01-27T00:00:00Z"
+    purpose: robustness_diagnostics
+
+  longer_horizon:
+    fit_before: "2025-01-23T00:00:00Z"
+    validate_from: "2025-01-23T00:00:00Z"
+    validate_before: "2025-01-27T00:00:00Z"
+    purpose: overlapping_distribution_diagnostic
+
+evaluation:
+  primary_metric: global_roc_auc
+
+  compare_identical_rows: true
+
+  diagnostics:
+    history_length: true
+    item_frequency: true
+    day_type: true
+    event_arrival_time: true
+    unseen_users: true
+    unseen_items: true
+
+  uncertainty:
+    method: paired_event_cluster_bootstrap
+
+model_selection:
+  use_development_for_tuning: true
+  restrict_confirmation_access: true
+  require_confirmation_for_promotion: true
+  reject_unexplained_metric_regressions: true
