@@ -1,0 +1,85 @@
+{
+    "contract_version" : "1.0",
+    
+    "description" : "Huawei TechArena Phase 1 CTR input data contract", 
+
+    "files" : {
+        "train" : {
+            "required_columns" : [
+                "rowid",
+                "event_id", 
+                "user_id", 
+                "item_id", 
+                "timestamp", 
+                "time_bucket", 
+                "day_type", 
+                "history_item_ids",
+                "history_timestamps",
+                "clicked"
+            ],
+            "has_labels" : true 
+        },
+
+        "evaluation" : {
+            "required_columns" : [
+                "rowid",
+                "event_id",
+                "user_id",
+                "item_id",
+                "timestamp",
+                "time_bucket",
+                "day_type",
+                "history_item_ids",
+                "history_timestamps"
+            ],
+            "has_labels" : false
+        }
+    },
+
+    "identifiers" : {
+        "columns" : [
+            "rowid",
+            "event_id",
+            "user_id",
+            "item_id"
+        ],
+        "type" : "string",
+        "rowid_unique" : true
+    },
+
+    "events" : {
+        "expected_candidate_count" : 10,
+        "maximum_clicks_per_event" : 1,
+        "require_consistent_event_context" : true
+    }, 
+
+    "history" : {
+        "item_column" : "history_item_ids",
+        "timestamp_column" : "history_timestamps",
+        "encoding" : "json_array",
+        "maximum_length" : 20,
+        "require_equal_lengths" : true,
+        "require_timestamps_before_event" : true, 
+        "order" : "oldest_to_newest", 
+        "allow_repeated_items" : true
+    },
+
+    "timestamp" : {
+        "column" : "timestamp",
+        "unit" : "unix_seconds", 
+        "timezone" : "UTC"
+    },
+
+    "time_bucket" : {
+        "allowed_values" : [0, 1, 2, 3]
+    },
+
+    "day_type" : {
+        "allowed_values" : [0, 1]
+    }, 
+
+    "target" : {
+        "column" : "clicked",
+        "allowed_values" : [0, 1]
+    }
+}
