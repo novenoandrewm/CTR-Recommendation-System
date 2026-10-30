@@ -1,0 +1,62 @@
+# ==================================================
+# Huawei TechArena - CTR Recommendation System
+# ==================================================
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Build and packaging artifacts
+build/
+dist/
+*.egg-info/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Raw and processed datasets
+/data/raw/*
+!/data/raw/.gitkeep
+
+/data/processed/*
+!/data/processed/.gitkeep
+
+# Generated experiment artifacts
+/runs/*
+!/runs/.gitkeep
+
+# Approved submission files
+/submissions/approved/*
+!/submissions/approved/.gitkeep
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# Test coverage
+.coverage
+.coverage.*
+htmlcov/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# IDE configuration
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
