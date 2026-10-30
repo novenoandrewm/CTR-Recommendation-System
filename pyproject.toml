@@ -4,7 +4,9 @@ version = "0.1.0"
 description = "Reproducible CTR prediction for Huawei TechArena"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "pyyaml>=6.0.3",
+]
 
 [project.scripts]
 ctr = "ctr_recommendation.cli:main"
