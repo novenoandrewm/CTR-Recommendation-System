@@ -1,9 +1,12 @@
 """Regression tests for global ROC AUC and row-ID alignment."""
 
+# Import standard libraries
 from math import inf, nan
+from random import Random
 
 import pytest
 
+# Import necessary classes
 from ctr_recommendation.evaluation.metrics import (
     global_roc_auc,
     score_by_rowid,
@@ -154,3 +157,45 @@ def test_boolean_labels_rejected() -> None:
 
     with pytest.raises(ValueError, match="binary integers"):
         global_roc_auc([False, True], [0.1, 0.9])
+
+
+def test_auc_matches_pairwise_reference() -> None:
+    """Compare global AUC against an independent exhaustive calculation."""
+
+    rng = Random(1729)
+
+    # Test 100 reproducible datasets.
+    for _ in range(100):
+        # Guarantee that both classes are represented.
+        labels = [0, 1] + [rng.randrange(2) for _ in range(38)]
+
+        # Generate scores from a small discrete range.
+        # This intentionally creates many tied scores.
+        # Negative scores are also included.
+        scores = [rng.randrange(-4, 5) / 4 for _ in labels]
+
+        # Extract positive and negative prediction scores.
+        positives = [score for label, score in zip(labels, scores, strict=True) if label == 1]
+
+        negatives = [score for label, score in zip(labels, scores, strict=True) if label == 0]
+
+        # Calculate ROC AUC using exhaustive pairwise comparisons.
+        #
+        # Positive score > negative score: 1 point
+        # Positive score = negative score: 0.5 points
+        # Positive score < negative score: 0 points
+
+        concordant = sum(
+            (1.0 if positive > negative else 0.5 if positive == negative else 0.0)
+            for positive in positives
+            for negative in negatives
+        )
+
+        # Reference ROC AUC.
+        reference_auc = concordant / (len(positives) * len(negatives))
+
+        # ROC AUC produced by our implementation.
+        actual_auc = global_roc_auc(labels, scores)
+
+        # Both independent calculations must agree.
+        assert actual_auc == pytest.approx(reference_auc)
