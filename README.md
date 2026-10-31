@@ -1,52 +1,195 @@
 # CTR Recommendation System
 
-A reproducible machine learning project for the Huawei TechArena
-2026 Click-Through Rate Prediction Challenge.
+### Huawei TechArena 2026 — CTR Prediction Challenge
 
-## Objective
+A reproducible machine-learning project for predicting click-through probabilities in recommendation events.
 
-Predict click probabilities for candidate items using historical
-user interactions and available event information.
+The project prioritises:
 
-The primary evaluation metric is global ROC AUC.
+* Accurate CTR prediction.
+* Generalisation to unseen observations.
+* Prevention of temporal and target leakage.
+* Reproducible experiments.
+* Reliable evaluation and model comparison.
+* Transparent documentation of failures and limitations.
 
-## Project Architecture
+## 1. Problem Definition
 
-- `configs/` — Experiment and model configurations
-- `contracts/` — Input and output data contracts
-- `data/` — Raw and processed datasets
-- `docs/` — Architecture and engineering documentation
-- `experiments/` — Experiment hypotheses
-- `runs/` — Generated experiment artifacts
-- `src/ctr_recommendation/` — Application source code
-- `submissions/` — Validated submission artifacts
-- `tests/` — Automated tests
+The objective is to predict the probability that a user clicks a candidate recommendation.
 
-## Environment
+Each recommendation event contains 10 candidate items, with at most one clicked candidate.
 
-Python 3.11 or newer is required.
+The primary evaluation metric is **global candidate-level ROC AUC**.
 
-Install dependencies:
+Models must produce probabilities associated with their correct candidate row identifiers.
 
-    uv sync
+## 2. Project Structure
 
-Verify the command-line interface:
+```text
+CTR-Recommendation-System/
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml
+│
+├── configs/
+│   ├── validation.yaml
+│   ├── experiments/
+│   └── models/
+│
+├── contracts/
+│
+├── data/
+│   ├── raw/
+│   └── processed/
+│
+├── docs/
+│   ├── validation_protocol.md
+│   └── experiment_policy.md
+│
+├── experiments/
+│   └── records/
+│
+├── src/
+│   └── ctr_recommendation/
+│       ├── data/
+│       ├── evaluation/
+│       ├── features/
+│       ├── inference/
+│       ├── models/
+│       └── training/
+│
+├── tests/
+├── runs/
+├── submissions/
+│
+├── .gitignore
+├── pyproject.toml
+├── uv.lock
+└── README.md
+```
 
-    uv run ctr --help
+Official datasets, generated predictions, trained models, and temporary experiment outputs are stored locally and excluded from Git.
 
-Run tests:
+## 3. Environment Setup
 
-    uv run pytest -q
+The project uses Python and the `uv` package manager.
 
-Run lint checks:
+Install the required Python version:
 
-    uv run ruff check src tests
+```cmd
+uv python install 3.13
+```
 
-## Development Principles
+Install locked dependencies:
 
-- Use reproducible configurations.
-- Prevent temporal and target leakage.
-- Maintain immutable experiment artifacts.
-- Validate model improvements using global ROC AUC.
-- Record successful and unsuccessful experiments.
-- Do not reuse previous experiment artifacts.
+```cmd
+uv sync --locked
+```
+
+Verify formatting:
+
+```cmd
+uv run --locked ruff format --check src tests
+```
+
+Run linting:
+
+```cmd
+uv run --locked ruff check src tests
+```
+
+Run automated tests:
+
+```cmd
+uv run --locked pytest -q
+```
+
+Both `pyproject.toml` and `uv.lock` must be version-controlled to support reproducible development.
+
+## 4. Data
+
+The official competition datasets are not included in this repository.
+
+Place authorised copies at:
+
+```text
+data/raw/train.csv
+data/raw/evaluation.csv
+```
+
+Do not commit competition datasets to GitHub.
+
+## 5. Baseline Experiments
+
+Development validation date: January 23, 2025.
+
+Validation population: 34,912 recommendation events and 349,120 candidate rows.
+
+| Experiment | Method                           | Development ROC AUC |
+| ---------- | -------------------------------- | ------------------: |
+| B0         | Smoothed Item CTR                |            0.524285 |
+| B1         | Item CTR + User Click Propensity |            0.533983 |
+
+These are local development-validation measurements, not hidden-test results.
+
+The improvement observed in B1 does not establish better within-event recommendation ranking or generalisation to the official evaluation population.
+
+## 6. Model Evaluation
+
+All experiments must use appropriate temporal separation.
+
+Our evaluation methodology includes:
+
+* Forward-in-time validation.
+* Strictly historical features.
+* Training-only fitting of supervised statistics.
+* Event-level validation selection.
+* Row-ID-aligned predictions.
+* Global ROC AUC.
+* Independent verification of metric calculations.
+* Analysis of distribution shifts and model failures.
+
+The reserved confirmation window must not be repeatedly used to tune models.
+
+## 7. Preventing Overfitting
+
+Generalisation is prioritised over maximising development scores.
+
+Every experiment must document its training period, validation population, model configuration, hyperparameters, regularisation, early-stopping procedure where applicable, and potential signs of overfitting.
+
+Model comparisons must use consistent evaluation populations.
+
+A high training score or improvement on a repeatedly inspected validation dataset is not sufficient evidence of generalisation.
+
+## 8. Reproducibility
+
+Each experiment must record:
+
+* Git commit.
+* Dataset version or fingerprint.
+* Validation configuration.
+* Feature configuration.
+* Model configuration.
+* Random seed.
+* Dependency environment.
+* Metrics.
+* Failures and limitations.
+
+Experiment summaries are maintained under `experiments/records/`.
+
+Large model artifacts and prediction files remain in ignored local directories.
+
+## 9. Development Workflow
+
+Changes should be developed on feature branches and reviewed before merging into `main`.
+
+Automated checks must pass before merging.
+
+The project uses GitHub Actions for formatting, linting, and dataset-independent unit tests.
+
+## 10. Competition and Data Restrictions
+
+All dataset access and publication decisions must comply with the official competition rules.
+
+The repository should remain private unless public release is explicitly authorised.
