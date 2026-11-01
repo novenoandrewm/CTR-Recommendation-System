@@ -1,8 +1,8 @@
 # Huawei TechArena 2026
 # Temporal Validation Configuration
-# Version: 1.0
+# Version: 2.0
 
-version: 1
+version: 2
 
 task:
   type: candidate_click_prediction
@@ -26,6 +26,12 @@ validation:
 
 windows:
 
+  development_early:
+    fit_before: "2025-01-22T00:00:00Z"
+    validate_from: "2025-01-22T00:00:00Z"
+    validate_before: "2025-01-23T00:00:00Z"
+    purpose: model_development
+
   development:
     fit_before: "2025-01-23T00:00:00Z"
     validate_from: "2025-01-23T00:00:00Z"
@@ -42,13 +48,13 @@ windows:
     fit_before: "2025-01-25T00:00:00Z"
     validate_from: "2025-01-25T00:00:00Z"
     validate_before: "2025-01-27T00:00:00Z"
-    purpose: robustness_diagnostics
+    purpose: post_confirmation_robustness
 
   longer_horizon:
     fit_before: "2025-01-23T00:00:00Z"
     validate_from: "2025-01-23T00:00:00Z"
     validate_before: "2025-01-27T00:00:00Z"
-    purpose: overlapping_distribution_diagnostic
+    purpose: retrospective_diagnostics_only
 
 evaluation:
   primary_metric: global_roc_auc
@@ -71,3 +77,21 @@ model_selection:
   restrict_confirmation_access: true
   require_confirmation_for_promotion: true
   reject_unexplained_metric_regressions: true
+
+  allowed_development_windows:
+    - development_early
+    - development
+
+  reserved_windows:
+    - confirmation
+    - weekend_robustness
+    - longer_horizon
+
+  confirmation_policy:
+    evaluate_after_model_freeze: true
+    no_retuning_after_confirmation: true
+
+  reproducibility:
+    require_git_commit: true
+    require_dataset_fingerprint: true
+    require_experiment_record: true

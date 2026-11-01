@@ -9,11 +9,11 @@ from pathlib import Path
 # Import necessary classes
 from ctr_recommendation.data.splits import (
     ValidationWindow,
-    load_validation_windows,
     validate_window,
 )
 from ctr_recommendation.data.validate import load_input_contract
 from ctr_recommendation.evaluation.metrics import score_by_rowid
+from ctr_recommendation.evaluation.window_policy import load_development_window
 from ctr_recommendation.training.baseline import (
     SMOOTHING,
     read_candidates,
@@ -301,15 +301,15 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    windows = load_validation_windows(args.validation_config)
-
-    if args.window not in windows:
-        raise ValueError(f"Unknown window: {args.window}")
+    window = load_development_window(
+        args.validation_config,
+        args.window,
+    )
 
     result = evaluate_history_match(
         args.train,
         args.contract,
-        windows[args.window],
+        window,
     )
 
     print()
