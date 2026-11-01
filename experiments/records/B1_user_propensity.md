@@ -41,7 +41,13 @@ B0 and B1 use identical fitting and validation populations.
 
 **Known-user coverage:** 93.90%
 
-**Dataset SHA-256:** Not recorded at the time of execution.
+**Dataset SHA-256:** Current local training dataset SHA-256 (measured 2026-10-31):
+e9c7a23ebb56123fe2a659ea3e30435ab181fec62d122d0ad580e7b2c0bbd2a2
+
+Provenance limitation:
+The fingerprint was captured after this experiment.
+Byte-for-byte identity with the dataset used during the original run
+has not been independently verified.
 
 ## 4. Results
 
